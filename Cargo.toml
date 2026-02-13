@@ -1,0 +1,3 @@
+[workspace]
+members = ["whatsmeow-sys"]
+resolver = "2"
