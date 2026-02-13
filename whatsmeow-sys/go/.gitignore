@@ -1,0 +1,7 @@
+go
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+libwhatsmeow.h
