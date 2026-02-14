@@ -1,110 +1,14 @@
 use std::{
     ffi::{c_char, c_int, CStr},
-    sync::{mpsc::Sender, LazyLock, Mutex, RwLock},
+    sync::{LazyLock, Mutex},
 };
 
-use crate::{ChatId, ConnId, MsgId, StatusFlags};
+use crate::{
+    events::{sendc, sendm, ChatEvent, Event},
+    DownloadFileAction, DownloadFileStatus, Jid, MsgId, StatusFlags,
+};
 
-#[derive(Debug, Clone)]
-pub enum ChatEvent {
-    NewContactsNotify {
-        name: String,
-        phone: String,
-        is_self: bool,
-        is_alias: bool,
-        notify: c_int,
-    },
-    NewChatsNotify {
-        is_unread: bool,
-        is_muted: bool,
-        is_pinned: bool,
-        last_message_time: c_int,
-    },
-    NewMessagesNotify {
-        msg_id: MsgId,
-        sender_id: String,
-        text: String,
-        from_me: c_int,
-        quoted_id: String,
-        file_id: String,
-        file_path: String,
-        file_status: c_int,
-        time_sent: c_int,
-        is_read: bool,
-        is_edited: bool,
-    },
-    NewTypingNotify {
-        user_id: String,
-        is_typing: bool,
-    },
-    NewMessageStatusNotify {
-        msg_id: MsgId,
-        is_read: bool,
-    },
-    NewMessageFileNotify {
-        msg_id: MsgId,
-        file_path: String,
-        file_status: c_int,
-        action: c_int,
-    },
-    NewMessageReactionNotify {
-        msg_id: MsgId,
-        sender_id: String,
-        text: String,
-        from_me: c_int,
-    },
-    DeleteChatNotify,
-    DeleteMessageNotify(MsgId),
-    UpdateIsMuted(bool),
-    UpdatePinNotify {
-        is_pinned: bool,
-        time_pinned: c_int,
-    },
-}
-
-#[derive(Debug, Clone)]
-pub enum Event {
-    ChatEvent(ChatId, ChatEvent),
-
-    NewStatusNotify {
-        user_id: String,
-        is_online: c_int,
-        time_seen: c_int,
-    },
-
-    Reinit,
-    /// Open WhatsApp on your phone, click the menu bar and select "Linked devices".
-    /// Click on "Link a device", unlock the phone and aim its camera at the
-    /// Qr code displayed on the computer screen.
-    ///
-    /// Scan the Qr code to authenticate
-    QrCodeAtPath(String),
-    /// Open the WhatsApp notification "Enter code to link new device" on your phone,
-    /// click "Confirm" and enter below pairing code on your phone, or press CTRL-C
-    /// to abort.
-    PairingCode(String),
-    /// When it's about to print something, so it's releasing the TUI?
-    SetProtocolUiControl {
-        is_take_control: bool,
-    },
-    SetStatus(StatusFlags),
-    ClearStatus(StatusFlags),
-}
-
-type SentEvent = (ConnId, Event);
-pub static SENDER: LazyLock<RwLock<Option<Sender<SentEvent>>>> =
-    LazyLock::new(|| RwLock::new(None));
-
-fn sendm(id: c_int, event: Event) {
-    if let Ok(Some(s)) = SENDER.read().as_deref() {
-        _ = s.send((ConnId(id as isize), event));
-    }
-}
-fn sendc(id: c_int, chat_id: *const c_char, event: ChatEvent) {
-    sendm(id, Event::ChatEvent(ChatId(cstr(chat_id)), event));
-}
-
-fn cstr(ptr: *const c_char) -> String {
+pub fn cstr(ptr: *const c_char) -> String {
     if ptr.is_null() {
         return "".to_string();
     }
@@ -178,7 +82,7 @@ pub extern "C" fn WmNewMessagesNotify(
         chat_id,
         ChatEvent::NewMessagesNotify {
             msg_id: MsgId(cstr(msg_id)),
-            sender_id: cstr(sender_id),
+            sender_id: Jid(cstr(sender_id)),
             text: cstr(text),
             from_me,
             quoted_id: cstr(quoted_id),
@@ -258,8 +162,18 @@ pub extern "C" fn WmNewMessageFileNotify(
         ChatEvent::NewMessageFileNotify {
             msg_id: MsgId(cstr(msg_id)),
             file_path: cstr(file_path),
-            file_status,
-            action,
+            file_status: match file_status {
+                0 => DownloadFileStatus::NotDownloaded,
+                1 => DownloadFileStatus::Downloaded,
+                2 => DownloadFileStatus::Downloading,
+                3 => DownloadFileStatus::DownloadFailed,
+                _ => DownloadFileStatus::None,
+            },
+            action: match action {
+                1 => DownloadFileAction::Open,
+                2 => DownloadFileAction::Save,
+                _ => DownloadFileAction::None,
+            },
         },
     );
 }
@@ -278,8 +192,8 @@ pub extern "C" fn WmNewMessageReactionNotify(
         chat_id,
         ChatEvent::NewMessageReactionNotify {
             msg_id: MsgId(cstr(msg_id)),
-            sender_id: cstr(sender_id),
-            text: cstr(text),
+            sender_id: Jid(cstr(sender_id)),
+            emoji: cstr(text),
             from_me,
         },
     );

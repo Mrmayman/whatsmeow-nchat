@@ -1,0 +1,117 @@
+use std::{
+    collections::HashMap,
+    ffi::{c_char, c_int},
+    sync::{mpsc::Sender, LazyLock, RwLock},
+};
+
+use crate::{
+    handlers::cstr, ConnId, DownloadFileAction, DownloadFileStatus, Jid, MsgId, StatusFlags,
+};
+
+#[derive(Debug, Clone)]
+pub enum ChatEvent {
+    NewContactsNotify {
+        name: String,
+        phone: String,
+        is_self: bool,
+        is_alias: bool,
+        notify: c_int,
+    },
+    NewChatsNotify {
+        is_unread: bool,
+        is_muted: bool,
+        is_pinned: bool,
+        last_message_time: c_int,
+    },
+    NewMessagesNotify {
+        msg_id: MsgId,
+        sender_id: Jid,
+        text: String,
+        from_me: c_int,
+        quoted_id: String,
+        file_id: String,
+        file_path: String,
+        file_status: c_int,
+        time_sent: c_int,
+        is_read: bool,
+        is_edited: bool,
+    },
+    NewTypingNotify {
+        user_id: String,
+        is_typing: bool,
+    },
+    NewMessageStatusNotify {
+        msg_id: MsgId,
+        is_read: bool,
+    },
+    /// File attachment downloaded by user
+    NewMessageFileNotify {
+        msg_id: MsgId,
+        file_path: String,
+        file_status: DownloadFileStatus,
+        action: DownloadFileAction,
+    },
+    NewMessageReactionNotify {
+        msg_id: MsgId,
+        sender_id: Jid,
+        emoji: String,
+        from_me: c_int,
+    },
+    DeleteChatNotify,
+    DeleteMessageNotify(MsgId),
+    UpdateIsMuted(bool),
+    UpdatePinNotify {
+        is_pinned: bool,
+        time_pinned: c_int,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub enum Event {
+    ChatEvent(Jid, ChatEvent),
+
+    NewStatusNotify {
+        user_id: String,
+        is_online: c_int,
+        time_seen: c_int,
+    },
+
+    Reinit,
+    /// Open WhatsApp on your phone, click the menu bar and select "Linked devices".
+    /// Click on "Link a device", unlock the phone and aim its camera at the
+    /// Qr code displayed on the computer screen.
+    ///
+    /// Scan the Qr code to authenticate
+    QrCodeAtPath(String),
+    /// Open the WhatsApp notification "Enter code to link new device" on your phone,
+    /// click "Confirm" and enter below pairing code on your phone, or press CTRL-C
+    /// to abort.
+    PairingCode(String),
+    /// When it's about to print something, so it's releasing the TUI?
+    SetProtocolUiControl {
+        is_take_control: bool,
+    },
+    SetStatus(StatusFlags),
+    ClearStatus(StatusFlags),
+}
+
+pub type SentEvent = (ConnId, Event);
+type SenderMap = HashMap<ConnId, Sender<SentEvent>>;
+pub static SENDERS: LazyLock<RwLock<SenderMap>> = LazyLock::new(|| RwLock::new(HashMap::new()));
+
+pub fn add_sender(id: ConnId, sender: Sender<SentEvent>) {
+    if let Ok(mut smap) = SENDERS.write() {
+        smap.insert(id, sender);
+    }
+}
+
+pub fn sendm(id: c_int, event: Event) {
+    if let Ok(smap) = SENDERS.read() {
+        if let Some(s) = smap.get(&ConnId(id as _)) {
+            _ = s.send((ConnId(id as isize), event));
+        }
+    }
+}
+pub fn sendc(id: c_int, chat_id: *const c_char, event: ChatEvent) {
+    sendm(id, Event::ChatEvent(Jid(cstr(chat_id)), event));
+}
