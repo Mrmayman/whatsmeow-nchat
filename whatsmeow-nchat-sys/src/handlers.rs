@@ -3,9 +3,9 @@ use std::{
     sync::{mpsc::Sender, LazyLock, Mutex, RwLock},
 };
 
-pub struct ConnId(pub isize);
-pub struct ChatId(pub String);
+use crate::{ChatId, ConnId, MsgId, StatusFlags};
 
+#[derive(Debug, Clone)]
 pub enum ChatEvent {
     NewContactsNotify {
         name: String,
@@ -21,7 +21,7 @@ pub enum ChatEvent {
         last_message_time: c_int,
     },
     NewMessagesNotify {
-        msg_id: String,
+        msg_id: MsgId,
         sender_id: String,
         text: String,
         from_me: c_int,
@@ -38,25 +38,23 @@ pub enum ChatEvent {
         is_typing: bool,
     },
     NewMessageStatusNotify {
-        msg_id: String,
+        msg_id: MsgId,
         is_read: bool,
     },
     NewMessageFileNotify {
-        msg_id: String,
+        msg_id: MsgId,
         file_path: String,
         file_status: c_int,
         action: c_int,
     },
     NewMessageReactionNotify {
-        msg_id: String,
+        msg_id: MsgId,
         sender_id: String,
         text: String,
         from_me: c_int,
     },
     DeleteChatNotify,
-    DeleteMessageNotify {
-        msg_id: String,
-    },
+    DeleteMessageNotify(MsgId),
     UpdateIsMuted(bool),
     UpdatePinNotify {
         is_pinned: bool,
@@ -64,6 +62,7 @@ pub enum ChatEvent {
     },
 }
 
+#[derive(Debug, Clone)]
 pub enum Event {
     ChatEvent(ChatId, ChatEvent),
 
@@ -88,12 +87,8 @@ pub enum Event {
     SetProtocolUiControl {
         is_take_control: bool,
     },
-    SetStatus {
-        flags: c_int,
-    },
-    ClearStatus {
-        flags: c_int,
-    },
+    SetStatus(StatusFlags),
+    ClearStatus(StatusFlags),
 }
 
 type SentEvent = (ConnId, Event);
@@ -182,7 +177,7 @@ pub extern "C" fn WmNewMessagesNotify(
         conn_id,
         chat_id,
         ChatEvent::NewMessagesNotify {
-            msg_id: cstr(msg_id),
+            msg_id: MsgId(cstr(msg_id)),
             sender_id: cstr(sender_id),
             text: cstr(text),
             from_me,
@@ -242,7 +237,7 @@ pub extern "C" fn WmNewMessageStatusNotify(
         conn_id,
         chat_id,
         ChatEvent::NewMessageStatusNotify {
-            msg_id: cstr(msg_id),
+            msg_id: MsgId(cstr(msg_id)),
             is_read: is_read != 0,
         },
     );
@@ -261,7 +256,7 @@ pub extern "C" fn WmNewMessageFileNotify(
         conn_id,
         chat_id,
         ChatEvent::NewMessageFileNotify {
-            msg_id: cstr(msg_id),
+            msg_id: MsgId(cstr(msg_id)),
             file_path: cstr(file_path),
             file_status,
             action,
@@ -282,7 +277,7 @@ pub extern "C" fn WmNewMessageReactionNotify(
         conn_id,
         chat_id,
         ChatEvent::NewMessageReactionNotify {
-            msg_id: cstr(msg_id),
+            msg_id: MsgId(cstr(msg_id)),
             sender_id: cstr(sender_id),
             text: cstr(text),
             from_me,
@@ -304,9 +299,7 @@ pub extern "C" fn WmDeleteMessageNotify(
     sendc(
         conn_id,
         chat_id,
-        ChatEvent::DeleteMessageNotify {
-            msg_id: cstr(msg_id),
-        },
+        ChatEvent::DeleteMessageNotify(MsgId(cstr(msg_id))),
     );
 }
 
@@ -349,12 +342,18 @@ pub extern "C" fn WmSetProtocolUiControl(conn_id: c_int, is_take_control: c_int)
 
 #[no_mangle]
 pub extern "C" fn WmSetStatus(conn_id: c_int, flags: c_int) {
-    sendm(conn_id, Event::SetStatus { flags });
+    sendm(
+        conn_id,
+        Event::SetStatus(StatusFlags::from_bits_retain(flags as _)),
+    );
 }
 
 #[no_mangle]
 pub extern "C" fn WmClearStatus(conn_id: c_int, flags: c_int) {
-    sendm(conn_id, Event::ClearStatus { flags });
+    sendm(
+        conn_id,
+        Event::ClearStatus(StatusFlags::from_bits_retain(flags as _)),
+    );
 }
 
 #[no_mangle]
