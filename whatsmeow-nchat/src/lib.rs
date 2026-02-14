@@ -21,7 +21,6 @@ use whatsmeow_nchat_sys::{self as sys, DownloadFileAction};
 
 use std::{
     ffi::{c_char, CStr, CString},
-    fmt::Display,
     path::Path,
     sync::mpsc::Receiver,
 };
@@ -62,6 +61,7 @@ pub enum AccountState {
 
 impl AccountState {
     /// Gets the current state of the connection `id`
+    #[must_use]
     pub fn get(id: ConnId) -> Self {
         unsafe {
             match sys::CWmExtGetState(id.raw()) {
@@ -189,10 +189,7 @@ pub fn send_message(
 }
 
 fn cstr_maybe(c: Option<&CString>) -> *mut c_char {
-    c.as_ref()
-        .map(|n| n.as_ptr())
-        .unwrap_or(EMPTY.as_ptr())
-        .cast_mut()
+    c.as_ref().map_or(EMPTY.as_ptr(), |n| n.as_ptr()).cast_mut()
 }
 
 /// Forces an update of the contact list with new info if any.
@@ -282,7 +279,7 @@ pub fn exit_group(id: ConnId, chat_id: &Jid) -> Result<()> {
 /// - Other protocol errors
 pub fn send_typing_indicator(id: ConnId, chat_id: &Jid, is_typing: bool) -> Result<()> {
     let chat_id: CString = chat_id.try_into()?;
-    attempt(unsafe { sys::CWmSendTyping(id.raw(), chat_id.as_ptr().cast_mut(), is_typing as _) })
+    attempt(unsafe { sys::CWmSendTyping(id.raw(), chat_id.as_ptr().cast_mut(), is_typing.into()) })
 }
 
 /// Sets your online status.
@@ -291,7 +288,7 @@ pub fn send_typing_indicator(id: ConnId, chat_id: &Jid, is_typing: bool) -> Resu
 /// [`Event::SetStatus`] or [`Event::ClearStatus`]
 /// for client-side updation.
 pub fn set_is_online(id: ConnId, is_online: bool) -> Result<()> {
-    attempt(unsafe { sys::CWmSendStatus(id.raw(), is_online as _) })
+    attempt(unsafe { sys::CWmSendStatus(id.raw(), is_online.into()) })
 }
 
 /// Downloads a file attachment.

@@ -1,7 +1,13 @@
-#![allow(non_camel_case_types)]
+#[allow(non_camel_case_types)]
+#[allow(clippy::pub_underscore_fields)]
+mod sys {
+    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+}
+pub use sys::*;
 
-include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
-
+/// # Safety
+/// `path` and `proxy` must be valid C Strings
+#[allow(clippy::result_unit_err)]
 pub unsafe fn connect(
     path: *mut ::std::os::raw::c_char,
     proxy: *mut ::std::os::raw::c_char,
@@ -33,6 +39,7 @@ pub use handlers::{LogMsg, LogState, LOG_STATE};
 pub struct ConnId(pub(crate) isize);
 
 impl ConnId {
+    #[must_use]
     pub fn raw(self) -> GoInt {
         self.0 as _
     }

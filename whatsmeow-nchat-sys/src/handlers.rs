@@ -10,7 +10,7 @@ use crate::{
 
 pub fn cstr(ptr: *const c_char) -> String {
     if ptr.is_null() {
-        return "".to_string();
+        return String::new();
     }
     let out = unsafe { CStr::from_ptr(ptr).to_string_lossy().into_owned() };
     unsafe { libc::free(ptr as _) };
@@ -37,7 +37,7 @@ pub extern "C" fn WmNewContactsNotify(
             is_alias: is_alias != 0,
             notify,
         },
-    )
+    );
 }
 
 #[no_mangle]
