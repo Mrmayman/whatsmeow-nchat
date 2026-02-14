@@ -31,7 +31,7 @@ mod error;
 use error::{attempt, get_error};
 pub use error::{Result, WhatsmeowError};
 
-static EMPTY: &CStr = unsafe { CStr::from_bytes_with_nul_unchecked(b"\0") };
+static EMPTY: &CStr = c"";
 
 /// Initializes a connection. The first thing to do on startup!
 pub fn create_connection(
@@ -83,7 +83,7 @@ impl AccountState {
     }
 }
 
-/// Logs into an account in the connection `id`.
+/// Logs into an account with the connection.
 /// Call this only if you haven't logged in yet.
 ///
 /// Use [`AccountState::get`] to check if you're logged in.
@@ -91,7 +91,7 @@ pub fn login(id: ConnId) -> Result<()> {
     attempt(unsafe { sys::CWmLogin(id.0 as _) })
 }
 
-/// Logs out of the account in the connection.
+/// Logs out of the account linked in the connection.
 pub fn logout(id: ConnId) -> Result<()> {
     attempt(unsafe { sys::CWmLogout(id.0 as _) })
 }
@@ -124,21 +124,19 @@ impl Display for FileType {
     }
 }
 
-/// # Arguments
-/// - `id`: connection id
-/// - `chat_id`
-/// - `text`: message contents
-/// - Replying to quoted message:
+/// Sends/edits a message with the given parameters.
+///
+/// - To edit the message instead of sending it,
+///   use `edit_msg` argument (Id and timestamp of message being edited)
+/// - To attach a file, use `file` argument
+/// - To reply to a quoted message, use `quoted_*` arguments (TODO)
 ///   - `quoted_id`: TODO (empty for none)
 ///   - `quoted_text`: text that's being replied to
 ///   - `quoted_sender`: TODO
-/// - `file`: (optional) Path and type of file attached
-/// - `edit_msg`: (optional) Id and timestamp of message being edited, if any
-///   - Leave `None` if you're sending a new message, not editing one
 pub fn send_message(
     id: ConnId,
     chat_id: &ChatId,
-    text: &str,
+    contents: &str,
     quoted_id: &str,
     quoted_text: &str,
     quoted_sender: &str,
@@ -146,7 +144,7 @@ pub fn send_message(
     edit_msg: Option<(&MsgId, isize)>,
 ) -> Result<()> {
     let chat_id = CString::new(chat_id.0.as_str())?;
-    let text = CString::new(text)?;
+    let text = CString::new(contents)?;
     let quoted_id = CString::new(quoted_id)?;
     let quoted_text = CString::new(quoted_text)?;
     let quoted_sender = CString::new(quoted_sender)?;
@@ -189,7 +187,7 @@ fn cstr_maybe(c: Option<&CString>) -> *mut c_char {
         .cast_mut()
 }
 
-/// Updates the contact list with new info if any.
+/// Forces an update of the contact list with new info if any.
 ///
 /// As the new info loads, it will be streamed in
 /// through [`ChatEvent::NewContactsNotify`],
