@@ -1,5 +1,5 @@
 [package]
-name = "whatsmeow-sys"
+name = "whatsmeow-nchat-sys"
 version = "0.1.0"
 edition = "2021"
 
