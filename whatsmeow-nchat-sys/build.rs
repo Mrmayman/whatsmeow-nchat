@@ -11,19 +11,14 @@ fn main() {
         cfg!(target_os = "linux")
     };
 
-    if !go_dir.join("libwhatsmeow.h").exists() {
-        runcmd(
-            Command::new("go")
-                .args([
-                    "build",
-                    "-buildmode=c-archive",
-                    "-modcacherw -buildvcs=false",
-                    "-o",
-                    "libwhatsmeow.a",
-                ])
-                .current_dir(&go_dir),
-        );
-    }
+    runcmd(
+        Command::new("go")
+            .arg("build")
+            .args(["-buildmode=c-archive", "-modcacherw", "-buildvcs=false"])
+            .args(["-ldflags", "-s -w"]) // Reduces file size from 60 mb -> _ mb but may worsen debuggability
+            .args(["-o", "libwhatsmeow.a"])
+            .current_dir(&go_dir),
+    );
 
     let mut builder =
         bindgen::Builder::default().header(go_dir.join("libwhatsmeow.h").to_str().unwrap());
@@ -46,7 +41,6 @@ fn main() {
 
     println!("cargo:rustc-link-search=native={}", go_dir.display());
     println!("cargo:rustc-link-lib=static=whatsmeow");
-    println!("cargo:rerun-if-changed={}/libwhatsmeow.a", go_dir.display());
     println!(
         "cargo:rustc-link-arg={}",
         go_dir.join("libwhatsmeow.a").display()
@@ -56,6 +50,11 @@ fn main() {
     println!("cargo:rustc-link-lib=dylib=m");
     println!("cargo:rustc-link-lib=dylib=dl");
     println!("cargo:rustc-link-lib=dylib=rt");
+
+    println!("cargo:rerun-if-changed={}/libwhatsmeow.a", go_dir.display());
+    println!("cargo:rerun-if-changed={}/gowm.go", go_dir.display());
+    println!("cargo:rerun-if-changed={}/cgowm.go", go_dir.display());
+    println!("cargo:rerun-if-changed={}/ext", go_dir.display());
 }
 
 fn runcmd(cmd: &mut Command) {

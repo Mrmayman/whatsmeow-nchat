@@ -1,9 +1,9 @@
 use std::{
     ffi::{c_char, c_int, CStr},
-    sync::{mpsc::Sender, LazyLock, RwLock},
+    sync::{mpsc::Sender, LazyLock, Mutex, RwLock},
 };
 
-pub struct ConnId(pub c_int);
+pub struct ConnId(pub isize);
 pub struct ChatId(pub String);
 
 pub enum ChatEvent {
@@ -74,6 +74,17 @@ pub enum Event {
     },
 
     Reinit,
+    /// Open WhatsApp on your phone, click the menu bar and select "Linked devices".
+    /// Click on "Link a device", unlock the phone and aim its camera at the
+    /// Qr code displayed on the computer screen.
+    ///
+    /// Scan the Qr code to authenticate
+    QrCodeAtPath(String),
+    /// Open the WhatsApp notification "Enter code to link new device" on your phone,
+    /// click "Confirm" and enter below pairing code on your phone, or press CTRL-C
+    /// to abort.
+    PairingCode(String),
+    /// When it's about to print something, so it's releasing the TUI?
     SetProtocolUiControl {
         is_take_control: bool,
     },
@@ -91,7 +102,7 @@ pub static SENDER: LazyLock<RwLock<Option<Sender<SentEvent>>>> =
 
 fn sendm(id: c_int, event: Event) {
     if let Ok(Some(s)) = SENDER.read().as_deref() {
-        _ = s.send((ConnId(id), event));
+        _ = s.send((ConnId(id as isize), event));
     }
 }
 fn sendc(id: c_int, chat_id: *const c_char, event: ChatEvent) {
@@ -378,10 +389,41 @@ pub extern "C" fn WmLogInfo(filename: *const c_char, line_no: c_int, message: *c
 
 #[no_mangle]
 pub extern "C" fn WmLogWarning(filename: *const c_char, line_no: c_int, message: *const c_char) {
-    println!("WARN {}:{} {}", cstr(filename), line_no, cstr(message));
+    let message = cstr(message);
+    let filename = cstr(filename);
+    println!("WARN {filename}:{line_no} {message}");
+    LOG_STATE.lock().unwrap().warnings.push(LogMsg {
+        filename,
+        line_no,
+        message,
+    });
 }
 
 #[no_mangle]
 pub extern "C" fn WmLogError(filename: *const c_char, line_no: c_int, message: *const c_char) {
     println!("ERROR {}:{} {}", cstr(filename), line_no, cstr(message));
+}
+
+pub static LOG_STATE: LazyLock<Mutex<LogState>> = LazyLock::new(|| Mutex::new(LogState::default()));
+
+#[derive(Debug)]
+pub struct LogMsg {
+    pub filename: String,
+    pub line_no: c_int,
+    pub message: String,
+}
+
+#[derive(Default)]
+pub struct LogState {
+    pub warnings: Vec<LogMsg>,
+}
+
+#[no_mangle]
+pub extern "C" fn WmExtShowImage(path: *const c_char) {
+    sendm(0, Event::QrCodeAtPath(cstr(path)));
+}
+
+#[no_mangle]
+pub extern "C" fn WmExtLoginPairingCode(code: *const c_char) {
+    sendm(0, Event::PairingCode(cstr(code)));
 }

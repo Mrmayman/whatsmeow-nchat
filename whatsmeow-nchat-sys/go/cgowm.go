@@ -32,6 +32,8 @@ package main
 // extern void WmLogInfo(char* p_Filename, int p_LineNo, char* p_Message);
 // extern void WmLogWarning(char* p_Filename, int p_LineNo, char* p_Message);
 // extern void WmLogError(char* p_Filename, int p_LineNo, char* p_Message);
+// extern void WmExtShowImage(char* p_path);
+// extern void WmExtLoginPairingCode(char* p_code);
 import "C"
 
 import (
@@ -189,6 +191,14 @@ func CWmAppConfigGetNum(param string) int {
 
 func CWmAppConfigSetNum(param string, value int) {
 	C.WmAppConfigSetNum(C.CString(param), C.int(value))
+}
+
+func CWmExtShowImage(path string) {
+	C.WmExtShowImage(C.CString(path))
+}
+
+func CWmExtLoginPairingCode(code string) {
+	C.WmExtLoginPairingCode(C.CString(code))
 }
 
 func LOG_TRACE(message string) {

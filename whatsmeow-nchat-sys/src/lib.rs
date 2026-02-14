@@ -3,4 +3,4 @@
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 mod handlers;
-pub use handlers::{ChatEvent, ConnId, Event, SENDER};
+pub use handlers::{ChatEvent, ConnId, Event, LogMsg, LogState, LOG_STATE, SENDER};

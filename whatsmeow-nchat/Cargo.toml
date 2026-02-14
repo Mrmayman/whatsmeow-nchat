@@ -1,0 +1,8 @@
+[package]
+name = "whatsmeow-nchat"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+whatsmeow-nchat-sys.path = "../whatsmeow-nchat-sys"
+thiserror = "2"

@@ -438,20 +438,6 @@ func DownloadFromFileInfo(client *whatsmeow.Client, info DownloadInfo) ([]byte, 
 	}
 }
 
-// utils
-func ShowImage(path string) {
-	switch runtime.GOOS {
-	case "linux":
-		LOG_DEBUG("xdg-open " + path)
-		exec.Command("xdg-open", path).Start()
-	case "darwin":
-		LOG_DEBUG("open " + path)
-		exec.Command("open", path).Start()
-	default:
-		LOG_WARNING(fmt.Sprintf("unsupported os \"%s\"", runtime.GOOS))
-	}
-}
-
 func GetOSName() string {
 	switch runtime.GOOS {
 	case "linux":
@@ -2307,21 +2293,6 @@ func WmLogin(connId int) int {
 			LOG_TRACE(fmt.Sprintf("acquire console"))
 			CWmSetProtocolUiControl(connId, 1)
 
-			if usePairingCode {
-				fmt.Printf("\n")
-				fmt.Printf("Open the WhatsApp notification \"Enter code to link new device\" on your phone,\n")
-				fmt.Printf("click \"Confirm\" and enter below pairing code on your phone, or press CTRL-C\n")
-				fmt.Printf("to abort.\n")
-				fmt.Printf("\n")
-			} else {
-				fmt.Printf("\n")
-				fmt.Printf("Open WhatsApp on your phone, click the menu bar and select \"Linked devices\".\n")
-				fmt.Printf("Click on \"Link a device\", unlock the phone and aim its camera at the\n")
-				fmt.Printf("Qr code displayed on the computer screen.\n")
-				fmt.Printf("\n")
-				fmt.Printf("Scan the Qr code to authenticate, or press CTRL-C to abort.\n")
-			}
-
 			for evt := range ch {
 				if evt.Event == whatsmeow.QRChannelEventCode {
 					if usePairingCode {
@@ -2333,14 +2304,13 @@ func WmLogin(connId int) int {
 							LOG_WARNING(fmt.Sprintf("pair phone error %#v", pairErr))
 							SetState(connId, Disconnected)
 						} else {
-							fmt.Printf("Code: %s\n", pairCode)
-							fmt.Printf("\n")
+							CWmExtLoginPairingCode(pairCode)
 						}
 					} else {
 						if hasGUI {
 							qrPath := path + "/tmp/qr.png"
 							qrcode.WriteFile(evt.Code, qrcode.Medium, 512, qrPath)
-							ShowImage(qrPath)
+							CWmExtShowImage(qrPath)
 						} else {
 							qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
 						}
@@ -2393,14 +2363,8 @@ func WmLogin(connId int) int {
 
 		fmt.Printf("\n")
 		if GetState(connId) == Outdated {
-			fmt.Printf("ERROR:\n")
-			fmt.Printf("WhatsApp client is outdated, please update nchat to a newer version. See:\n")
-			fmt.Printf("https://github.com/d99kris/nchat/blob/master/doc/WMOUTDATED.md\n")
-		} else {
-			fmt.Printf("ERROR:\n")
-			fmt.Printf("Please see the log for details.\n")
+			LOG_WARNING(fmt.Sprintf("state not connected %#v\noutdated whatsapp client", GetState(connId)))
 		}
-		fmt.Printf("\n")
 
 		LOG_TRACE(fmt.Sprintf("release console"))
 		CWmSetProtocolUiControl(connId, 0)
