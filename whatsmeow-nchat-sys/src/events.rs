@@ -83,7 +83,7 @@ pub enum Event {
     /// Qr code displayed on the computer screen.
     ///
     /// Scan the Qr code to authenticate
-    QrCodeAtPath(String),
+    QrCode(String),
     /// Open the WhatsApp notification "Enter code to link new device" on your phone,
     /// click "Confirm" and enter below pairing code on your phone, or press CTRL-C
     /// to abort.

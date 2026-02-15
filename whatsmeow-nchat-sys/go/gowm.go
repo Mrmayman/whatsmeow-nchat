@@ -13,12 +13,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"math"
 	"mime"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"runtime/debug"
@@ -36,10 +33,7 @@ import (
 	"go.mau.fi/whatsmeow/proto/waWeb"
 	"go.mau.fi/whatsmeow/store"
 
-	"github.com/mdp/qrterminal"
-
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/skip2/go-qrcode"
 	"go.mau.fi/libsignal/logger"
 	"go.mau.fi/whatsmeow"
 	"go.mau.fi/whatsmeow/appstate"
@@ -476,73 +470,6 @@ func GetConfigOrEnvFlag(envVarName string) bool {
 	}
 
 	return false
-}
-
-func HasGUI() bool {
-	useQrTerminal := GetConfigOrEnvFlag("USE_QR_TERMINAL")
-	if useQrTerminal {
-		return false
-	}
-
-	switch runtime.GOOS {
-	case "darwin":
-		LOG_INFO("has gui")
-		LOG_DEBUG("gui check: [darwin default true]")
-		return true
-
-	case "linux":
-		_, isDisplaySet := os.LookupEnv("DISPLAY")
-		file, err := ioutil.TempFile("/tmp", "nchat-x11check.*.sh")
-		if err != nil {
-			LOG_WARNING(fmt.Sprintf("create file failed %#v", err))
-			return isDisplaySet
-		}
-
-		defer os.Remove(file.Name())
-		content := "#!/usr/bin/env bash\n\n" +
-			"if command -v timeout &> /dev/null; then\n" +
-			"  CMD=\"timeout 1s xset q\"\n" +
-			"else\n" +
-			"  CMD=\"xset q\"\n" +
-			"fi\n" +
-			"echo \"${CMD}\"\n" +
-			"${CMD} > /dev/null\n" +
-			"exit ${?}\n"
-
-		_, err = io.WriteString(file, content)
-		if err != nil {
-			LOG_WARNING(fmt.Sprintf("write file failed %#v", err))
-			return isDisplaySet
-		}
-
-		err = file.Close()
-		if err != nil {
-			LOG_WARNING(fmt.Sprintf("close file failed %#v", err))
-			return isDisplaySet
-		}
-
-		err = os.Chmod(file.Name(), 0777)
-		if err != nil {
-			LOG_WARNING(fmt.Sprintf("chmod file failed %#v", err))
-			return isDisplaySet
-		}
-
-		cmdout, err := exec.Command(file.Name()).CombinedOutput()
-		if err == nil {
-			LOG_INFO("has gui")
-			LOG_DEBUG(fmt.Sprintf("gui check: %s", strings.TrimSuffix(string(cmdout), "\n")))
-			return true
-		} else {
-			LOG_INFO("no gui")
-			LOG_DEBUG(fmt.Sprintf("gui check: %s", strings.TrimSuffix(string(cmdout), "\n")))
-			return false
-		}
-
-	default:
-		LOG_INFO("no gui")
-		LOG_DEBUG(fmt.Sprintf("gui check: [other \"%s\" default false]", runtime.GOOS))
-		return false
-	}
 }
 
 func BoolToInt(b bool) int {
@@ -2287,7 +2214,6 @@ func WmLogin(connId int) int {
 	} else {
 		timeoutMs = 60000 // 60 sec timeout during setup / qr code scan
 		go func() {
-			hasGUI := HasGUI()
 			usePairingCode := GetConfigOrEnvFlag("USE_PAIRING_CODE")
 
 			LOG_TRACE("acquire console")
@@ -2307,13 +2233,7 @@ func WmLogin(connId int) int {
 							CWmExtLoginPairingCode(pairCode)
 						}
 					} else {
-						if hasGUI {
-							qrPath := path + "/tmp/qr.png"
-							qrcode.WriteFile(evt.Code, qrcode.Medium, 512, qrPath)
-							CWmExtShowImage(qrPath)
-						} else {
-							qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
-						}
+						CWmExtQrCode(evt.Code)
 					}
 				} else if evt == whatsmeow.QRChannelSuccess {
 					LOG_DEBUG("qr channel event success")
@@ -2350,9 +2270,6 @@ func WmLogin(connId int) int {
 		waitedMs += 100
 	}
 	LOG_DEBUG("wait done")
-
-	// delete temporary image file
-	_ = os.Remove(path + "/tmp/qr.png")
 
 	// log error on stdout
 	if GetState(connId) != Connected {

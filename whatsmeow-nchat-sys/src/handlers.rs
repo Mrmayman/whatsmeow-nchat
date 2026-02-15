@@ -330,8 +330,8 @@ pub fn get_error() -> Option<LogMsg> {
 }
 
 #[no_mangle]
-extern "C" fn WmExtShowImage(path: *const c_char) {
-    sendm(0, Event::QrCodeAtPath(cstr(path)));
+extern "C" fn WmExtQrCode(path: *const c_char) {
+    sendm(0, Event::QrCode(cstr(path)));
 }
 
 #[no_mangle]
