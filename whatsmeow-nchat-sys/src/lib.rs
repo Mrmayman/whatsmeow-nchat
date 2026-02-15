@@ -8,7 +8,7 @@ pub use sys::*;
 /// # Safety
 /// `path` and `proxy` must be valid C Strings
 #[allow(clippy::result_unit_err)]
-pub unsafe fn connect(
+pub unsafe fn create_connection(
     path: *mut ::std::os::raw::c_char,
     proxy: *mut ::std::os::raw::c_char,
     send_type: GoInt,
@@ -37,6 +37,24 @@ pub use handlers::{get_error, LogMsg};
 pub struct ConnId(pub(crate) isize);
 
 impl ConnId {
+    /// Creates a connection id from a number.
+    ///
+    /// If you just want to get a connection,
+    /// create it the proper way using `create_connection`.
+    ///
+    /// Be careful using invalid [`ConnId`]'s
+    /// with API functions. It won't crash or anything,
+    /// but you will get `Err`'s.
+    #[must_use]
+    pub fn from_inner(inner: isize) -> Self {
+        Self(inner)
+    }
+
+    #[must_use]
+    pub fn into_inner(self) -> isize {
+        self.0
+    }
+
     #[must_use]
     pub fn raw(self) -> GoInt {
         self.0 as _
@@ -63,8 +81,10 @@ impl ConnId {
 /// HostedLIDServer   = "hosted.lid"
 /// BotServer         = "bot"
 /// ```
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Jid(pub String);
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MsgId(pub String);
 

@@ -46,7 +46,7 @@ pub fn create_connection(
     let proxy = CString::new(proxy)?;
 
     unsafe {
-        sys::connect(
+        sys::create_connection(
             path.as_ptr().cast_mut(),
             proxy.as_ptr().cast_mut(),
             send_type as _,
