@@ -7,3 +7,7 @@ edition = "2021"
 whatsmeow-nchat-sys.path = "../whatsmeow-nchat-sys"
 thiserror = "2"
 tokio = { version = "1", features = ["sync"] }
+
+[features]
+default = []
+serde = ["whatsmeow-nchat-sys/serde"]
