@@ -95,11 +95,10 @@ pub enum Event {
     ClearStatus(StatusFlags),
 }
 
-pub type SentEvent = (ConnId, Event);
-type SenderMap = HashMap<ConnId, Sender<SentEvent>>;
+type SenderMap = HashMap<ConnId, Sender<Event>>;
 pub static SENDERS: LazyLock<RwLock<SenderMap>> = LazyLock::new(|| RwLock::new(HashMap::new()));
 
-pub fn add_sender(id: ConnId, sender: Sender<SentEvent>) {
+pub fn add_sender(id: ConnId, sender: Sender<Event>) {
     if let Ok(mut smap) = SENDERS.write() {
         smap.insert(id, sender);
     }
@@ -108,7 +107,7 @@ pub fn add_sender(id: ConnId, sender: Sender<SentEvent>) {
 pub fn sendm(id: c_int, event: Event) {
     if let Ok(smap) = SENDERS.read() {
         if let Some(s) = smap.get(&ConnId(id as _)) {
-            _ = s.send((ConnId(id as isize), event));
+            _ = s.send(event);
         }
     }
 }

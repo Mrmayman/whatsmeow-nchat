@@ -1,5 +1,6 @@
 //! Higher level, (relatively) safe bindings to the
-//! Go `whatsmeow` library.
+//! Go `whatsmeow` library, based on [nchat's](https://github.com/d99kris/nchat)
+//! modifications and abstractions.
 //!
 //! - You create connections using [`create_connection`],
 //!   each representing  a different WhatsApp profile or account.
@@ -11,7 +12,7 @@
 //!
 //! # Safety
 //! - These functions are implemented in memory-safe Go
-//! - The Go implementation uses Mutexes, so this is thread-safe
+//! - The Go implementation uses Mutexes, so this should be thread-safe
 //!
 //! # TODO
 //! - Have system to prevent using connections after cleaning them up
@@ -32,11 +33,15 @@ pub use error::{Result, WhatsmeowError};
 static EMPTY: &CStr = c"";
 
 /// Initializes a connection. The first thing to do on startup!
+///
+/// This returns the connection id (store it, you'll need it)
+/// and a [`Receiver<Event>`] specific to that connection,
+/// that you'll use to receive all events (you'll need to poll it).
 pub fn create_connection(
     path: impl AsRef<Path>,
     proxy: &str,
     send_type: isize,
-) -> Result<(ConnId, Receiver<(ConnId, Event)>)> {
+) -> Result<(ConnId, Receiver<Event>)> {
     let path = CString::new(path.as_ref().to_string_lossy().to_string())?;
     let proxy = CString::new(proxy)?;
 

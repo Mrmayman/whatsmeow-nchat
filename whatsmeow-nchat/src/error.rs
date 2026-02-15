@@ -28,10 +28,7 @@ impl Display for WhatsmeowError {
 }
 
 pub fn get_error() -> WhatsmeowError {
-    let Ok(mut lock) = whatsmeow_nchat_sys::LOG_STATE.lock() else {
-        return WhatsmeowError::Poison;
-    };
-    if let Some(err) = lock.warnings.pop() {
+    if let Some(err) = whatsmeow_nchat_sys::get_error() {
         WhatsmeowError::Error(err)
     } else {
         WhatsmeowError::Unknown

@@ -12,7 +12,7 @@ pub unsafe fn connect(
     path: *mut ::std::os::raw::c_char,
     proxy: *mut ::std::os::raw::c_char,
     send_type: GoInt,
-) -> Result<(ConnId, Receiver<SentEvent>), ()> {
+) -> Result<(ConnId, Receiver<Event>), ()> {
     let r = unsafe { CWmInit(path, proxy, send_type) };
     if r == -1 {
         Err(())
@@ -32,8 +32,8 @@ use std::{
 mod events;
 mod handlers;
 
-pub use events::{ChatEvent, Event, SentEvent};
-pub use handlers::{LogMsg, LogState, LOG_STATE};
+pub use events::{ChatEvent, Event};
+pub use handlers::{get_error, LogMsg};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ConnId(pub(crate) isize);

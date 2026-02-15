@@ -18,7 +18,7 @@ pub fn cstr(ptr: *const c_char) -> String {
 }
 
 #[no_mangle]
-pub extern "C" fn WmNewContactsNotify(
+extern "C" fn WmNewContactsNotify(
     conn_id: c_int,
     chat_id: *const c_char,
     name: *const c_char,
@@ -41,7 +41,7 @@ pub extern "C" fn WmNewContactsNotify(
 }
 
 #[no_mangle]
-pub extern "C" fn WmNewChatsNotify(
+extern "C" fn WmNewChatsNotify(
     conn_id: c_int,
     chat_id: *const c_char,
     is_unread: c_int,
@@ -62,7 +62,7 @@ pub extern "C" fn WmNewChatsNotify(
 }
 
 #[no_mangle]
-pub extern "C" fn WmNewMessagesNotify(
+extern "C" fn WmNewMessagesNotify(
     conn_id: c_int,
     chat_id: *const c_char,
     msg_id: *const c_char,
@@ -97,7 +97,7 @@ pub extern "C" fn WmNewMessagesNotify(
 }
 
 #[no_mangle]
-pub extern "C" fn WmNewStatusNotify(
+extern "C" fn WmNewStatusNotify(
     conn_id: c_int,
     user_id: *const c_char,
     is_online: c_int,
@@ -114,7 +114,7 @@ pub extern "C" fn WmNewStatusNotify(
 }
 
 #[no_mangle]
-pub extern "C" fn WmNewTypingNotify(
+extern "C" fn WmNewTypingNotify(
     conn_id: c_int,
     chat_id: *const c_char,
     user_id: *const c_char,
@@ -131,7 +131,7 @@ pub extern "C" fn WmNewTypingNotify(
 }
 
 #[no_mangle]
-pub extern "C" fn WmNewMessageStatusNotify(
+extern "C" fn WmNewMessageStatusNotify(
     conn_id: c_int,
     chat_id: *const c_char,
     msg_id: *const c_char,
@@ -148,7 +148,7 @@ pub extern "C" fn WmNewMessageStatusNotify(
 }
 
 #[no_mangle]
-pub extern "C" fn WmNewMessageFileNotify(
+extern "C" fn WmNewMessageFileNotify(
     conn_id: c_int,
     chat_id: *const c_char,
     msg_id: *const c_char,
@@ -179,7 +179,7 @@ pub extern "C" fn WmNewMessageFileNotify(
 }
 
 #[no_mangle]
-pub extern "C" fn WmNewMessageReactionNotify(
+extern "C" fn WmNewMessageReactionNotify(
     conn_id: c_int,
     chat_id: *const c_char,
     msg_id: *const c_char,
@@ -200,16 +200,12 @@ pub extern "C" fn WmNewMessageReactionNotify(
 }
 
 #[no_mangle]
-pub extern "C" fn WmDeleteChatNotify(conn_id: c_int, chat_id: *const c_char) {
+extern "C" fn WmDeleteChatNotify(conn_id: c_int, chat_id: *const c_char) {
     sendc(conn_id, chat_id, ChatEvent::DeleteChatNotify);
 }
 
 #[no_mangle]
-pub extern "C" fn WmDeleteMessageNotify(
-    conn_id: c_int,
-    chat_id: *const c_char,
-    msg_id: *const c_char,
-) {
+extern "C" fn WmDeleteMessageNotify(conn_id: c_int, chat_id: *const c_char, msg_id: *const c_char) {
     sendc(
         conn_id,
         chat_id,
@@ -218,12 +214,12 @@ pub extern "C" fn WmDeleteMessageNotify(
 }
 
 #[no_mangle]
-pub extern "C" fn WmUpdateMuteNotify(conn_id: c_int, chat_id: *const c_char, is_muted: c_int) {
+extern "C" fn WmUpdateMuteNotify(conn_id: c_int, chat_id: *const c_char, is_muted: c_int) {
     sendc(conn_id, chat_id, ChatEvent::UpdateIsMuted(is_muted != 0));
 }
 
 #[no_mangle]
-pub extern "C" fn WmUpdatePinNotify(
+extern "C" fn WmUpdatePinNotify(
     conn_id: c_int,
     chat_id: *const c_char,
     is_pinned: c_int,
@@ -240,12 +236,12 @@ pub extern "C" fn WmUpdatePinNotify(
 }
 
 #[no_mangle]
-pub extern "C" fn WmReinit(conn_id: c_int) {
+extern "C" fn WmReinit(conn_id: c_int) {
     sendm(conn_id, Event::Reinit);
 }
 
 #[no_mangle]
-pub extern "C" fn WmSetProtocolUiControl(conn_id: c_int, is_take_control: c_int) {
+extern "C" fn WmSetProtocolUiControl(conn_id: c_int, is_take_control: c_int) {
     sendm(
         conn_id,
         Event::SetProtocolUiControl {
@@ -255,7 +251,7 @@ pub extern "C" fn WmSetProtocolUiControl(conn_id: c_int, is_take_control: c_int)
 }
 
 #[no_mangle]
-pub extern "C" fn WmSetStatus(conn_id: c_int, flags: c_int) {
+extern "C" fn WmSetStatus(conn_id: c_int, flags: c_int) {
     sendm(
         conn_id,
         Event::SetStatus(StatusFlags::from_bits_retain(flags as _)),
@@ -263,7 +259,7 @@ pub extern "C" fn WmSetStatus(conn_id: c_int, flags: c_int) {
 }
 
 #[no_mangle]
-pub extern "C" fn WmClearStatus(conn_id: c_int, flags: c_int) {
+extern "C" fn WmClearStatus(conn_id: c_int, flags: c_int) {
     sendm(
         conn_id,
         Event::ClearStatus(StatusFlags::from_bits_retain(flags as _)),
@@ -271,13 +267,13 @@ pub extern "C" fn WmClearStatus(conn_id: c_int, flags: c_int) {
 }
 
 #[no_mangle]
-pub extern "C" fn WmAppConfigGetNum(param: *const c_char) -> c_int {
+extern "C" fn WmAppConfigGetNum(param: *const c_char) -> c_int {
     println!("[HOOK] WmAppConfigGetNum param={}", cstr(param));
     0 // placeholder
 }
 
 #[no_mangle]
-pub extern "C" fn WmAppConfigSetNum(param: *const c_char, value: c_int) {
+extern "C" fn WmAppConfigSetNum(param: *const c_char, value: c_int) {
     println!(
         "[HOOK] WmAppConfigSetNum param={} value={}",
         cstr(param),
@@ -286,26 +282,26 @@ pub extern "C" fn WmAppConfigSetNum(param: *const c_char, value: c_int) {
 }
 
 #[no_mangle]
-pub extern "C" fn WmLogTrace(filename: *const c_char, line_no: c_int, message: *const c_char) {
+extern "C" fn WmLogTrace(filename: *const c_char, line_no: c_int, message: *const c_char) {
     println!("TRACE {}:{} {}", cstr(filename), line_no, cstr(message));
 }
 
 #[no_mangle]
-pub extern "C" fn WmLogDebug(filename: *const c_char, line_no: c_int, message: *const c_char) {
+extern "C" fn WmLogDebug(filename: *const c_char, line_no: c_int, message: *const c_char) {
     println!("DEBUG {}:{} {}", cstr(filename), line_no, cstr(message));
 }
 
 #[no_mangle]
-pub extern "C" fn WmLogInfo(filename: *const c_char, line_no: c_int, message: *const c_char) {
+extern "C" fn WmLogInfo(filename: *const c_char, line_no: c_int, message: *const c_char) {
     println!("INFO {}:{} {}", cstr(filename), line_no, cstr(message));
 }
 
 #[no_mangle]
-pub extern "C" fn WmLogWarning(filename: *const c_char, line_no: c_int, message: *const c_char) {
+extern "C" fn WmLogWarning(filename: *const c_char, line_no: c_int, message: *const c_char) {
     let message = cstr(message);
     let filename = cstr(filename);
     println!("WARN {filename}:{line_no} {message}");
-    LOG_STATE.lock().unwrap().warnings.push(LogMsg {
+    WARNINGS.lock().unwrap().push(LogMsg {
         filename,
         line_no,
         message,
@@ -313,11 +309,11 @@ pub extern "C" fn WmLogWarning(filename: *const c_char, line_no: c_int, message:
 }
 
 #[no_mangle]
-pub extern "C" fn WmLogError(filename: *const c_char, line_no: c_int, message: *const c_char) {
+extern "C" fn WmLogError(filename: *const c_char, line_no: c_int, message: *const c_char) {
     println!("ERROR {}:{} {}", cstr(filename), line_no, cstr(message));
 }
 
-pub static LOG_STATE: LazyLock<Mutex<LogState>> = LazyLock::new(|| Mutex::new(LogState::default()));
+static WARNINGS: LazyLock<Mutex<Vec<LogMsg>>> = LazyLock::new(|| Mutex::new(Vec::new()));
 
 #[derive(Debug)]
 pub struct LogMsg {
@@ -326,17 +322,19 @@ pub struct LogMsg {
     pub message: String,
 }
 
-#[derive(Default)]
-pub struct LogState {
-    pub warnings: Vec<LogMsg>,
+pub fn get_error() -> Option<LogMsg> {
+    let Ok(mut lock) = WARNINGS.lock() else {
+        return None;
+    };
+    lock.pop()
 }
 
 #[no_mangle]
-pub extern "C" fn WmExtShowImage(path: *const c_char) {
+extern "C" fn WmExtShowImage(path: *const c_char) {
     sendm(0, Event::QrCodeAtPath(cstr(path)));
 }
 
 #[no_mangle]
-pub extern "C" fn WmExtLoginPairingCode(code: *const c_char) {
+extern "C" fn WmExtLoginPairingCode(code: *const c_char) {
     sendm(0, Event::PairingCode(cstr(code)));
 }
