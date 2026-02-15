@@ -1,8 +1,9 @@
 use std::{
     collections::HashMap,
     ffi::{c_char, c_int},
-    sync::{mpsc::Sender, LazyLock, RwLock},
+    sync::{LazyLock, RwLock},
 };
+use tokio::sync::mpsc::UnboundedSender as Sender;
 
 use crate::{
     handlers::cstr, ConnId, DownloadFileAction, DownloadFileStatus, Jid, MsgId, StatusFlags,

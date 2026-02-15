@@ -18,16 +18,14 @@ pub unsafe fn connect(
         Err(())
     } else {
         let id = ConnId(r as _);
-        let (sender, receiver) = std::sync::mpsc::channel();
+        let (sender, receiver) = mpsc::unbounded_channel();
         add_sender(id, sender);
         Ok((id, receiver))
     }
 }
 
-use std::{
-    ffi::{CString, NulError},
-    sync::mpsc::Receiver,
-};
+use std::ffi::{CString, NulError};
+use tokio::sync::mpsc::{self, UnboundedReceiver as Receiver};
 
 mod events;
 mod handlers;

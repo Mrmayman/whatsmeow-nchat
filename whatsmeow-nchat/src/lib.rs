@@ -23,8 +23,8 @@ use whatsmeow_nchat_sys::{self as sys, DownloadFileAction};
 use std::{
     ffi::{c_char, CStr, CString},
     path::Path,
-    sync::mpsc::Receiver,
 };
+use tokio::sync::mpsc::UnboundedReceiver as Receiver;
 
 mod error;
 use error::{attempt, get_error};
