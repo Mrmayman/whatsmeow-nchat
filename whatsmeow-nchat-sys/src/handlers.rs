@@ -34,7 +34,7 @@ extern "C" fn WmNewContactsNotify(
             name: cstr(name),
             phone: cstr(phone),
             is_self: is_self != 0,
-            is_alias: is_alias != 0,
+            is_group: is_alias == 0,
             notify,
         },
     );

@@ -15,7 +15,7 @@ pub enum ChatEvent {
         name: String,
         phone: String,
         is_self: bool,
-        is_alias: bool,
+        is_group: bool,
         notify: c_int,
     },
     NewChatsNotify {

@@ -84,6 +84,14 @@ impl ConnId {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Jid(pub String);
+
+impl Jid {
+    #[must_use]
+    pub fn from_phone_no(phone_no: &str) -> Self {
+        Jid(format!("{phone_no}@s.whatsapp.net"))
+    }
+}
+
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MsgId(pub String);
