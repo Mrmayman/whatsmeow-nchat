@@ -55,6 +55,7 @@ impl ConnId {
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum JidServer {
     DefaultUser,
     Group,
@@ -124,6 +125,7 @@ impl Display for JidServer {
 pub struct Jid(String, JidServer);
 
 impl Jid {
+    #[must_use]
     pub fn parse(input: &str) -> Option<Self> {
         let mut i = input.split('@');
         let name = i.next()?;
@@ -149,6 +151,8 @@ impl Jid {
         self.1
     }
 
+    /// Converts the JID to raw text format used by WhatsApp
+    #[must_use]
     pub fn to_id(&self) -> String {
         format!("{}@{}", self.0, self.1)
     }
