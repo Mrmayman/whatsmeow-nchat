@@ -35,7 +35,7 @@ extern "C" fn WmNewContactsNotify(
             phone: cstr(phone),
             is_self: is_self != 0,
             is_group: is_alias == 0,
-            notify,
+            notify: notify as _,
         },
     );
 }
@@ -56,7 +56,7 @@ extern "C" fn WmNewChatsNotify(
             is_unread: is_unread != 0,
             is_muted: is_muted != 0,
             is_pinned: is_pinned != 0,
-            last_message_time,
+            last_message_time: last_message_time as _,
         },
     );
 }
@@ -90,12 +90,12 @@ extern "C" fn WmNewMessagesNotify(
             msg_id: MsgId(cstr(msg_id)),
             sender_id,
             text: cstr(text),
-            from_me,
+            from_me: from_me != 0,
             quoted_id: (!quoted_id.is_empty()).then_some(MsgId(quoted_id)),
             file_id_path: (!file_id.is_empty() && !file_path.is_empty())
                 .then_some((file_id, file_path)),
             file_status: DownloadFileStatus::from_raw(file_status),
-            time_sent,
+            time_sent: time_sent as _,
             is_read: is_read != 0,
             is_edited: is_edited != 0,
         },
@@ -113,8 +113,8 @@ extern "C" fn WmNewStatusNotify(
         conn_id,
         Event::NewStatusNotify {
             user_id: cstr(user_id),
-            is_online,
-            time_seen,
+            is_online: is_online != 0,
+            time_seen: time_seen as _,
         },
     );
 }
@@ -197,7 +197,7 @@ extern "C" fn WmNewMessageReactionNotify(
             msg_id: MsgId(cstr(msg_id)),
             sender_id,
             emoji: cstr(text),
-            from_me,
+            from_me: from_me != 0,
         },
     );
 }
@@ -233,7 +233,7 @@ extern "C" fn WmUpdatePinNotify(
         chat_id,
         ChatEvent::UpdatePinNotify {
             is_pinned: is_pinned != 0,
-            time_pinned,
+            time_pinned: time_pinned as _,
         },
     );
 }

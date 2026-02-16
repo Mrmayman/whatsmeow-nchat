@@ -16,23 +16,23 @@ pub enum ChatEvent {
         phone: String,
         is_self: bool,
         is_group: bool,
-        notify: c_int,
+        notify: isize,
     },
     NewChatsNotify {
         is_unread: bool,
         is_muted: bool,
         is_pinned: bool,
-        last_message_time: c_int,
+        last_message_time: isize,
     },
     NewMessagesNotify {
         msg_id: MsgId,
         sender_id: Jid,
         text: String,
-        from_me: c_int,
+        from_me: bool,
         quoted_id: Option<MsgId>,
         file_id_path: Option<(String, String)>,
         file_status: DownloadFileStatus,
-        time_sent: c_int,
+        time_sent: isize,
         is_read: bool,
         is_edited: bool,
     },
@@ -55,14 +55,14 @@ pub enum ChatEvent {
         msg_id: MsgId,
         sender_id: Jid,
         emoji: String,
-        from_me: c_int,
+        from_me: bool,
     },
     DeleteChatNotify,
     DeleteMessageNotify(MsgId),
     UpdateIsMuted(bool),
     UpdatePinNotify {
         is_pinned: bool,
-        time_pinned: c_int,
+        time_pinned: isize,
     },
 }
 
@@ -72,8 +72,8 @@ pub enum Event {
 
     NewStatusNotify {
         user_id: String,
-        is_online: c_int,
-        time_seen: c_int,
+        is_online: bool,
+        time_seen: isize,
     },
 
     Reinit,
