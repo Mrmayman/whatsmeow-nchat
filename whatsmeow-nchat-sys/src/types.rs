@@ -1,5 +1,5 @@
 use std::{
-    ffi::{CString, NulError},
+    ffi::{c_int, CString, NulError},
     fmt::Display,
     str::FromStr,
 };
@@ -204,4 +204,17 @@ pub enum DownloadFileStatus {
     Downloaded = 1,
     Downloading = 2,
     DownloadFailed = 3,
+}
+
+impl DownloadFileStatus {
+    #[must_use]
+    pub fn from_raw(n: c_int) -> Self {
+        match n {
+            0 => DownloadFileStatus::NotDownloaded,
+            1 => DownloadFileStatus::Downloaded,
+            2 => DownloadFileStatus::Downloading,
+            3 => DownloadFileStatus::DownloadFailed,
+            _ => DownloadFileStatus::None,
+        }
+    }
 }

@@ -80,6 +80,9 @@ extern "C" fn WmNewMessagesNotify(
     let Some(sender_id) = Jid::parse(&cstr(sender_id)) else {
         return;
     };
+    let quoted_id = cstr(quoted_id);
+    let file_id = cstr(file_id);
+    let file_path = cstr(file_path);
     sendc(
         conn_id,
         chat_id,
@@ -88,10 +91,10 @@ extern "C" fn WmNewMessagesNotify(
             sender_id,
             text: cstr(text),
             from_me,
-            quoted_id: cstr(quoted_id),
-            file_id: cstr(file_id),
-            file_path: cstr(file_path),
-            file_status,
+            quoted_id: (!quoted_id.is_empty()).then_some(MsgId(quoted_id)),
+            file_id_path: (!file_id.is_empty() && !file_path.is_empty())
+                .then_some((file_id, file_path)),
+            file_status: DownloadFileStatus::from_raw(file_status),
             time_sent,
             is_read: is_read != 0,
             is_edited: is_edited != 0,
@@ -165,13 +168,7 @@ extern "C" fn WmNewMessageFileNotify(
         ChatEvent::NewMessageFileNotify {
             msg_id: MsgId(cstr(msg_id)),
             file_path: cstr(file_path),
-            file_status: match file_status {
-                0 => DownloadFileStatus::NotDownloaded,
-                1 => DownloadFileStatus::Downloaded,
-                2 => DownloadFileStatus::Downloading,
-                3 => DownloadFileStatus::DownloadFailed,
-                _ => DownloadFileStatus::None,
-            },
+            file_status: DownloadFileStatus::from_raw(file_status),
             action: match action {
                 1 => DownloadFileAction::Open,
                 2 => DownloadFileAction::Save,
