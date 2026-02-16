@@ -77,12 +77,15 @@ extern "C" fn WmNewMessagesNotify(
     is_read: c_int,
     is_edited: c_int,
 ) {
+    let Some(sender_id) = Jid::parse(&cstr(sender_id)) else {
+        return;
+    };
     sendc(
         conn_id,
         chat_id,
         ChatEvent::NewMessagesNotify {
             msg_id: MsgId(cstr(msg_id)),
-            sender_id: Jid(cstr(sender_id)),
+            sender_id,
             text: cstr(text),
             from_me,
             quoted_id: cstr(quoted_id),
@@ -187,12 +190,15 @@ extern "C" fn WmNewMessageReactionNotify(
     text: *const c_char,
     from_me: c_int,
 ) {
+    let Some(sender_id) = Jid::parse(&cstr(sender_id)) else {
+        return;
+    };
     sendc(
         conn_id,
         chat_id,
         ChatEvent::NewMessageReactionNotify {
             msg_id: MsgId(cstr(msg_id)),
-            sender_id: Jid(cstr(sender_id)),
+            sender_id,
             emoji: cstr(text),
             from_me,
         },

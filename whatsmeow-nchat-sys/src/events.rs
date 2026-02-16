@@ -113,5 +113,8 @@ pub fn sendm(id: c_int, event: Event) {
     }
 }
 pub fn sendc(id: c_int, chat_id: *const c_char, event: ChatEvent) {
-    sendm(id, Event::ChatEvent(Jid(cstr(chat_id)), event));
+    let Some(chat_id) = Jid::parse(&cstr(chat_id)) else {
+        return;
+    };
+    sendm(id, Event::ChatEvent(chat_id, event));
 }
