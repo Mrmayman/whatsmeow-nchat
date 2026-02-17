@@ -290,14 +290,26 @@ extern "C" fn WmAppConfigSetNum(param: *const c_char, value: c_int) {
     );
 }
 
+const ENV: &str = "WHATSMEOW_LOG";
+
 #[no_mangle]
 extern "C" fn WmLogTrace(filename: *const c_char, line_no: c_int, message: *const c_char) {
-    println!("TRACE {}:{} {}", cstr(filename), line_no, cstr(message));
+    if log_enabled() {
+        println!("TRACE {}:{} {}", cstr(filename), line_no, cstr(message));
+    }
 }
 
 #[no_mangle]
 extern "C" fn WmLogDebug(filename: *const c_char, line_no: c_int, message: *const c_char) {
-    println!("DEBUG {}:{} {}", cstr(filename), line_no, cstr(message));
+    if log_enabled() {
+        println!("DEBUG {}:{} {}", cstr(filename), line_no, cstr(message));
+    }
+}
+
+fn log_enabled() -> bool {
+    let v = std::env::var(ENV).ok();
+    let v = v.as_deref();
+    v == Some("1") || v == Some("true")
 }
 
 #[no_mangle]
