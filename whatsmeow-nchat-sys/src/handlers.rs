@@ -109,10 +109,13 @@ extern "C" fn WmNewStatusNotify(
     is_online: c_int,
     time_seen: c_int,
 ) {
+    let Some(user_id) = Jid::parse(&cstr(user_id)) else {
+        return;
+    };
     sendm(
         conn_id,
         Event::NewStatusNotify {
-            user_id: cstr(user_id),
+            user_id,
             is_online: is_online != 0,
             time_seen: time_seen as _,
         },
@@ -126,11 +129,14 @@ extern "C" fn WmNewTypingNotify(
     user_id: *const c_char,
     is_typing: c_int,
 ) {
+    let Some(user_id) = Jid::parse(&cstr(user_id)) else {
+        return;
+    };
     sendc(
         conn_id,
         chat_id,
         ChatEvent::NewTypingNotify {
-            user_id: cstr(user_id),
+            user_id,
             is_typing: is_typing != 0,
         },
     );

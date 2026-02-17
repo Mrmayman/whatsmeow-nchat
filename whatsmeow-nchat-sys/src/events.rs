@@ -37,7 +37,7 @@ pub enum ChatEvent {
         is_edited: bool,
     },
     NewTypingNotify {
-        user_id: String,
+        user_id: Jid,
         is_typing: bool,
     },
     NewMessageStatusNotify {
@@ -71,7 +71,7 @@ pub enum Event {
     ChatEvent(Jid, ChatEvent),
 
     NewStatusNotify {
-        user_id: String,
+        user_id: Jid,
         is_online: bool,
         time_seen: isize,
     },
