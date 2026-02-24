@@ -12,3 +12,10 @@ or the safe-ish Rust API in `whatsmeow-nchat`.
 
 > **NOTE**: This is very incomplete.
 > Don't rely on this unless you know what you're doing!
+
+# Dependencies
+
+- [Go compiler](https://go.dev/dl/)
+- GCC/Clang (MinGW/MSYS2 if on Windows)
+- `libclang` (optional)
+- `x86_64-pc-windows-gnu` target if on Windows (MSVC unsupported!)
