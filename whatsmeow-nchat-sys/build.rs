@@ -136,14 +136,30 @@ fn run_go(go_dir: &Path) {
 }
 
 fn run_go_cmd(target_os: &str, target_arch: &str, cmd: &mut Command) {
-    let out = cmd
-        .envs([
-            ("GOOS", target_os),
-            ("GOARCH", target_arch),
-            ("CGO_ENABLED", "1"),
-        ])
-        .output()
-        .unwrap();
+    let mut envs = vec![
+        ("GOOS", target_os.to_owned()),
+        ("GOARCH", target_arch.to_owned()),
+        ("CGO_ENABLED", "1".to_owned()),
+    ];
+
+    // Compiling *for* windows... but not *from* windows
+    if target_os == "windows" && !cfg!(target_os = "windows") {
+        let mingw_prefix = match target_arch {
+            "amd64" => Some("x86_64"),
+            "386" => Some("i686"),
+            "arm64" => Some("aarch64"),
+            _ => None,
+        };
+
+        if let Some(prefix) = mingw_prefix {
+            envs.push(("CC", format!("{prefix}-w64-mingw32-gcc")));
+            envs.push(("CXX", format!("{prefix}-w64-mingw32-g++")));
+        } else {
+            panic!("Unsupported Windows target architecture: {}", target_arch);
+        }
+    }
+
+    let out = cmd.envs(envs).output().unwrap();
     if !out.status.success() {
         println!("{}", String::from_utf8_lossy(&out.stdout));
         eprintln!("{}", String::from_utf8_lossy(&out.stderr));
