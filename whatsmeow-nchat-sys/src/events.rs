@@ -60,10 +60,14 @@ pub enum ChatEvent {
     DeleteChatNotify,
     DeleteMessageNotify(MsgId),
     UpdateIsMuted(bool),
+    UpdateIsArchived(bool),
     UpdatePinNotify {
         is_pinned: bool,
         time_pinned: isize,
     },
+    /// Updates the group members list,
+    /// with a map of jid to display name.
+    GroupMembers(HashMap<Jid, String>),
 }
 
 #[derive(Debug, Clone)]

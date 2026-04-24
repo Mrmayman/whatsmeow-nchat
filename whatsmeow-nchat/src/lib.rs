@@ -134,6 +134,8 @@ pub struct QuotedMessage {
 ///   use `edit_msg` argument (Id and timestamp of message being edited)
 /// - To attach a file, use `file` argument
 /// - To reply to a quoted message, use `reply_to` argument
+/// - To mention users in the message, use `mentions` argument
+///   with display names and Jids of the mentioned users
 ///
 /// # Errors
 /// - `id` is invalid
@@ -148,6 +150,7 @@ pub fn send_message(
     reply_to: Option<&QuotedMessage>,
     file: Option<(impl AsRef<Path>, FileType)>,
     edit_msg: Option<(&MsgId, isize)>,
+    mentions: &[(String, Jid)],
 ) -> Result<()> {
     let chat_id: CString = chat_id.try_into()?;
     let text = CString::new(contents)?;
@@ -177,6 +180,9 @@ pub fn send_message(
         (None, None)
     };
 
+    let mentions_json =
+        CString::new(serde_json::to_string(mentions).unwrap_or_else(|_| "{}".to_owned()))?;
+
     attempt(unsafe {
         sys::CWmSendMessage(
             id.raw(),
@@ -189,6 +195,7 @@ pub fn send_message(
             cstr_maybe(file_type.as_ref()),
             cstr_maybe(edit_msg_id.as_ref()),
             edit_msg_sent,
+            mentions_json.as_ptr().cast_mut(),
         )
     })
 }
@@ -348,4 +355,24 @@ pub fn send_reaction(
             emoji.as_ptr().cast_mut(),
         )
     })
+}
+
+/// Fetches members in a group. Emits a [`ChatEvent::GroupMembers`]
+pub fn get_group_members(id: ConnId, chat_id: &Jid) -> Result<()> {
+    let chat_id: CString = chat_id.try_into()?;
+    attempt(unsafe { sys::CWmGetGroupMembers(id.raw(), chat_id.as_ptr().cast_mut()) })
+}
+
+/// Archives/unarchives a chat (a special subfolder)
+pub fn archive_chat_toggle(id: ConnId, chat_id: &Jid, is_archived: bool) -> Result<()> {
+    let chat_id: CString = chat_id.try_into()?;
+    attempt(unsafe {
+        sys::CWmArchiveChat(id.raw(), chat_id.as_ptr().cast_mut(), is_archived.into())
+    })
+}
+
+/// Pins/unpins a chat to the top of the list.
+pub fn pin_chat_toggle(id: ConnId, chat_id: &Jid, is_pinned: bool) -> Result<()> {
+    let chat_id: CString = chat_id.try_into()?;
+    attempt(unsafe { sys::CWmPinChat(id.raw(), chat_id.as_ptr().cast_mut(), is_pinned.into()) })
 }

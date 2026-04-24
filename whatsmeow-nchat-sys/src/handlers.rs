@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     ffi::{c_char, c_int, CStr},
     sync::{LazyLock, Mutex},
 };
@@ -272,6 +273,30 @@ extern "C" fn WmClearStatus(conn_id: c_int, flags: c_int) {
     sendm(
         conn_id,
         Event::ClearStatus(StatusFlags::from_bits_retain(flags as _)),
+    );
+}
+
+#[no_mangle]
+extern "C" fn WmNewGroupMembersNotify(
+    conn_id: ::std::os::raw::c_int,
+    chat_id: *mut ::std::os::raw::c_char,
+    members_json: *mut ::std::os::raw::c_char,
+) {
+    let json = cstr(members_json);
+    let map: HashMap<Jid, String> = serde_json::from_str(&json).unwrap_or_default();
+    sendc(conn_id, chat_id, ChatEvent::GroupMembers(map));
+}
+
+#[no_mangle]
+extern "C" fn WmUpdateArchivedNotify(
+    conn_id: ::std::os::raw::c_int,
+    chat_id: *mut ::std::os::raw::c_char,
+    is_archived: ::std::os::raw::c_int,
+) {
+    sendc(
+        conn_id,
+        chat_id,
+        ChatEvent::UpdateIsArchived(is_archived != 0),
     );
 }
 

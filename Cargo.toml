@@ -1,3 +1,6 @@
 [workspace]
 members = ["whatsmeow-nchat", "whatsmeow-nchat-sys"]
 resolver = "2"
+
+[workspace.dependencies]
+serde_json = "1"

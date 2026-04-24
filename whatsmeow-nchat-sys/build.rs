@@ -14,12 +14,12 @@ fn main() {
 
     run_go(&go_dir);
 
-    generate_bindings(&go_dir, out_path);
+    generate_bindings(&go_dir, &out_path);
 
     configure_cargo(&go_dir);
 }
 
-fn generate_bindings(go_dir: &Path, out_path: PathBuf) {
+fn generate_bindings(go_dir: &Path, out_path: &Path) {
     let bindings_path = out_path.join("bindings.rs");
 
     let res = std::panic::catch_unwind(|| {
@@ -93,9 +93,10 @@ fn configure_cargo(go_dir: &Path) {
 fn run_go(go_dir: &Path) {
     let is_go_present = Command::new("go").arg("version").output().is_ok();
 
-    if !is_go_present {
-        panic!("The Go programming language's compiler (go) isn't installed or couldn't be found (not in PATH)\nGet from https://go.dev/doc/install or your package manager");
-    }
+    assert!(
+        is_go_present,
+        "The Go programming language's compiler (go) isn't installed or couldn't be found (not in PATH)\nGet from https://go.dev/doc/install or your package manager"
+    );
 
     let (target_os, target_arch) = get_cross_compilation_details();
 
@@ -155,7 +156,7 @@ fn run_go_cmd(target_os: &str, target_arch: &str, cmd: &mut Command) {
             envs.push(("CC", format!("{prefix}-w64-mingw32-gcc")));
             envs.push(("CXX", format!("{prefix}-w64-mingw32-g++")));
         } else {
-            panic!("Unsupported Windows target architecture: {}", target_arch);
+            panic!("Unsupported Windows target architecture: {target_arch}");
         }
     }
 

@@ -2,9 +2,11 @@ use std::{
     ffi::{c_int, CString, NulError},
     fmt::Display,
     str::FromStr,
+    sync::Arc,
 };
 
 use bitflags::bitflags;
+use serde::{Deserialize, Serialize};
 
 use crate::GoInt;
 
@@ -53,9 +55,8 @@ impl ConnId {
 /// HostedLID   = "hosted.lid"
 /// Bot         = "bot"
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub enum JidServer {
     DefaultUser,
     Group,
@@ -120,9 +121,8 @@ impl Display for JidServer {
 /// I don't know what it is for others.
 ///
 /// See [`JidServer`] for info about servers.
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Jid(String, JidServer);
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Jid(Arc<str>, JidServer);
 
 impl Jid {
     #[must_use]
@@ -131,18 +131,18 @@ impl Jid {
         let name = i.next()?;
         let server = JidServer::from_str(i.next()?).ok()?;
 
-        Some(Self(name.to_owned(), server))
+        Some(Self(Arc::from(name), server))
     }
 
     #[must_use]
-    pub fn from_phone_no(phone_no: String) -> Self {
+    pub fn from_phone_no(phone_no: Arc<str>) -> Self {
         Jid(phone_no, JidServer::DefaultUser)
     }
 
     /// Returns the phone number or id (for groups/bots) of the Jid
     #[must_use]
     pub fn number(&self) -> &str {
-        self.0.as_str()
+        &self.0
     }
 
     /// Returns the server, or origin, of the id
@@ -158,8 +158,7 @@ impl Jid {
     }
 }
 
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MsgId(pub String);
 
 impl TryInto<CString> for &Jid {
