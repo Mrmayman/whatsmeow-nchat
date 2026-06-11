@@ -65,6 +65,10 @@ pub enum ChatEvent {
         is_pinned: bool,
         time_pinned: isize,
     },
+    UpdateMessageIsPinned {
+        msg_id: MsgId,
+        is_pinned: bool,
+    },
     /// Updates the group members list,
     /// with a map of jid to display name.
     GroupMembers(HashMap<Jid, String>),

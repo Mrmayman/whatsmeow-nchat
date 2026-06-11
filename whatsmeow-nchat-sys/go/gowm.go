@@ -46,7 +46,7 @@ import (
 	waLog "go.mau.fi/whatsmeow/util/log"
 )
 
-var whatsmeowDate int = 20260325
+var whatsmeowDate int = 20260516
 
 type JSONMessage []json.RawMessage
 type JSONMessageType string
@@ -842,6 +842,10 @@ func (handler *WmEventHandler) HandleEvent(rawEvt interface{}) {
 		LOG_TRACE(fmt.Sprintf("%#v", evt))
 		handler.HandleMessage(evt.Info, evt.Message, false /*isSyncRead*/)
 
+	case *events.UndecryptableMessage:
+		LOG_TRACE(fmt.Sprintf("%#v", evt))
+		handler.HandleUndecryptableMessage(evt)
+
 	case *events.Receipt:
 		LOG_TRACE(fmt.Sprintf("%#v", evt))
 		handler.HandleReceipt(evt)
@@ -941,7 +945,54 @@ func (handler *WmEventHandler) HandleReceipt(receipt *events.Receipt) {
 			LOG_TRACE("Call CWmNewMessageStatusNotify")
 			CWmNewMessageStatusNotify(connId, chatId, msgId, BoolToInt(isRead))
 		}
+	} else if receipt.Type == types.ReceiptTypePlayed || receipt.Type == types.ReceiptTypePlayedSelf {
+		// played receipts are sent for view-once media and for voice notes; treat both as read.
+		connId := handler.connId
+		var client *whatsmeow.Client = GetClient(connId)
+		if client == nil {
+			LOG_WARNING("client is nil")
+			return
+		}
+		chatId := GetChatId(client, &receipt.MessageSource.Chat, nil)
+		isRead := true
+		for _, msgId := range receipt.MessageIDs {
+			LOG_TRACE(fmt.Sprintf("Call CWmNewMessageStatusNotify"))
+			CWmNewMessageStatusNotify(connId, chatId, msgId, BoolToInt(isRead))
+		}
 	}
+}
+
+func (handler *WmEventHandler) HandleUndecryptableMessage(evt *events.UndecryptableMessage) {
+	if evt.UnavailableType != events.UnavailableTypeViewOnce {
+		LOG_TRACE(fmt.Sprintf("UndecryptableMessage type %q ignore", evt.UnavailableType))
+		return
+	}
+
+	connId := handler.connId
+	var client *whatsmeow.Client = GetClient(connId)
+	if client == nil {
+		LOG_WARNING("client is nil")
+		return
+	}
+
+	messageInfo := evt.Info
+	chatId := GetChatId(client, &messageInfo.Chat, &messageInfo.Sender)
+	msgId := messageInfo.ID
+	fromMe := messageInfo.IsFromMe
+	senderId := GetUserId(client, &messageInfo.Chat, &messageInfo.Sender)
+	isSelfChat := IsSelfChat(client, chatId)
+	timeSent := int(messageInfo.Timestamp.Unix())
+	isRead := IsRead(false /*isSyncRead*/, isSelfChat, fromMe, messageInfo.Timestamp, GetTimeRead(connId, chatId))
+
+	// WhatsApp does not relay view-once content to companion devices; show an informational
+	// message similar to WhatsApp Web's so the user knows what arrived and where to view it.
+	text := "[View once restricted to phone]"
+
+	handler.ProcessMessageInfo(messageInfo)
+
+	LOG_TRACE(fmt.Sprintf("Call CWmNewMessagesNotify %s: view once placeholder", chatId))
+	CWmNewMessagesNotify(connId, chatId, msgId, senderId, text, BoolToInt(fromMe), "" /*quotedId*/, "" /*fileId*/, "" /*filePath*/, FileStatusNone, timeSent,
+		BoolToInt(isRead), BoolToInt(false) /*isEdited*/)
 }
 
 func (handler *WmEventHandler) HandlePresence(presence *events.Presence) {
@@ -1258,7 +1309,7 @@ func (handler *WmEventHandler) HandleDeleteForMe(deleteForMe *events.DeleteForMe
 	chatId := GetChatId(client, &deleteForMe.ChatJID, nil)
 	msgId := deleteForMe.MessageID
 	LOG_TRACE(fmt.Sprintf("Call CWmDeleteMessageNotify %s %s", chatId, msgId))
-	CWmDeleteMessageNotify(connId, chatId, msgId)
+	CWmDeleteMessageNotify(connId, chatId, msgId, BoolToInt(true))
 }
 
 func (handler *WmEventHandler) HandleLoggedOut() {
@@ -1586,9 +1637,36 @@ func (handler *WmEventHandler) HandleMessage(messageInfo types.MessageInfo, msg 
 	case msg.ProtocolMessage != nil:
 		handler.HandleProtocolMessage(messageInfo, msg, isSyncRead)
 
+	case msg.PinInChatMessage != nil:
+		handler.HandlePinInChatMessage(messageInfo, msg)
+
 	default:
 		handler.HandleUnsupportedMessage(messageInfo, msg, isSyncRead)
 	}
+}
+
+func (handler *WmEventHandler) HandlePinInChatMessage(messageInfo types.MessageInfo, msg *waE2E.Message) {
+	LOG_TRACE(fmt.Sprintf("PinInChatMessage"))
+
+	connId := handler.connId
+	client := GetClient(connId)
+	if client == nil {
+		LOG_WARNING("client is nil")
+		return
+	}
+
+	pin := msg.GetPinInChatMessage()
+	if pin == nil {
+		LOG_WARNING("get pin in chat message failed")
+		return
+	}
+
+	chatId := GetChatId(client, &messageInfo.Chat, &messageInfo.Sender)
+	msgId := pin.GetKey().GetID()
+	isPinned := (pin.GetType() == waE2E.PinInChatMessage_PIN_FOR_ALL)
+
+	LOG_TRACE(fmt.Sprintf("Call CWmNewMessageIsPinnedNotify %s %s %t", chatId, msgId, isPinned))
+	CWmNewMessageIsPinnedNotify(connId, chatId, msgId, BoolToInt(isPinned))
 }
 
 func (handler *WmEventHandler) ProcessContextInfo(contextInfo *waE2E.ContextInfo, quotedId *string, text *string) {
@@ -2127,7 +2205,7 @@ func (handler *WmEventHandler) HandleProtocolMessage(messageInfo types.MessageIn
 		chatId := GetChatId(client, &messageInfo.Chat, &messageInfo.Sender)
 		msgId := protocol.GetKey().GetID()
 		LOG_TRACE(fmt.Sprintf("Call CWmDeleteMessageNotify %s %s", chatId, msgId))
-		CWmDeleteMessageNotify(connId, chatId, msgId)
+		CWmDeleteMessageNotify(connId, chatId, msgId, BoolToInt(messageInfo.IsFromMe))
 	} else {
 		LOG_TRACE(fmt.Sprintf("ProtocolMessage %#v ignore", protocol.GetType()))
 	}
@@ -2631,7 +2709,7 @@ func WmSendMessage(connId int, chatId string, text string, quotedId string, quot
 	}
 
 	isSend := false
-	isEdited := false
+	isEdited := (len(editMsgId) > 0)
 
 	// quote context
 	contextInfo := waE2E.ContextInfo{}

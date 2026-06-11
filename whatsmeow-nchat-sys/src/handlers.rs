@@ -278,9 +278,9 @@ extern "C" fn WmClearStatus(conn_id: c_int, flags: c_int) {
 
 #[no_mangle]
 extern "C" fn WmNewGroupMembersNotify(
-    conn_id: ::std::os::raw::c_int,
-    chat_id: *mut ::std::os::raw::c_char,
-    members_json: *mut ::std::os::raw::c_char,
+    conn_id: c_int,
+    chat_id: *mut c_char,
+    members_json: *mut c_char,
 ) {
     let json = cstr(members_json);
     let map: HashMap<Jid, String> = serde_json::from_str(&json).unwrap_or_default();
@@ -288,15 +288,28 @@ extern "C" fn WmNewGroupMembersNotify(
 }
 
 #[no_mangle]
-extern "C" fn WmUpdateArchivedNotify(
-    conn_id: ::std::os::raw::c_int,
-    chat_id: *mut ::std::os::raw::c_char,
-    is_archived: ::std::os::raw::c_int,
-) {
+extern "C" fn WmUpdateArchivedNotify(conn_id: c_int, chat_id: *mut c_char, is_archived: c_int) {
     sendc(
         conn_id,
         chat_id,
         ChatEvent::UpdateIsArchived(is_archived != 0),
+    );
+}
+
+#[no_mangle]
+extern "C" fn WmNewMessageIsPinnedNotify(
+    conn_id: c_int,
+    chat_id: *mut c_char,
+    msg_id: *mut c_char,
+    is_pinned: c_int,
+) {
+    sendc(
+        conn_id,
+        chat_id,
+        ChatEvent::UpdateMessageIsPinned {
+            msg_id: MsgId(cstr(msg_id)),
+            is_pinned: is_pinned != 0,
+        },
     );
 }
 

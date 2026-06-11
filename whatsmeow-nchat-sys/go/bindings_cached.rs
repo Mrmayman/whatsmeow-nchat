@@ -114,6 +114,14 @@ unsafe extern "C" {
     );
 }
 unsafe extern "C" {
+    pub fn WmNewMessageIsPinnedNotify(
+        p_ConnId: ::std::os::raw::c_int,
+        p_ChatId: *mut ::std::os::raw::c_char,
+        p_MsgId: *mut ::std::os::raw::c_char,
+        p_IsPinned: ::std::os::raw::c_int,
+    );
+}
+unsafe extern "C" {
     pub fn WmNewMessageFileNotify(
         p_ConnId: ::std::os::raw::c_int,
         p_ChatId: *mut ::std::os::raw::c_char,
@@ -144,6 +152,7 @@ unsafe extern "C" {
         p_ConnId: ::std::os::raw::c_int,
         p_ChatId: *mut ::std::os::raw::c_char,
         p_MsgId: *mut ::std::os::raw::c_char,
+        p_IsOutgoing: ::std::os::raw::c_int,
     );
 }
 unsafe extern "C" {
